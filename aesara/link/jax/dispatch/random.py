@@ -326,3 +326,35 @@ def jax_sample_fn_lognormal(op):
         return (rng, sample_exp)
 
     return sample_fn
+
+@jax_sample_fn.register(aer.MultinomialRV)
+def jax_sample_fn_multinomial(op):
+    """JAX implementation of `MultinomialRV`."""
+
+    def _categorical(key, p, shape):
+        shape = shape or p.shape[:-1]
+        s = jax.numpy.cumsum(p, axis=-1)
+        r = jax.random.uniform(key, shape=shape + (1,))
+        return jax.numpy.sum(s < r, axis=-1)
+
+    def sample_fn(rng, size, dtype, *parameters):
+        """add sampling functionality"""
+
+        rng_key = rng["jax_state"]
+        n, p = parameters
+        n_max = jax.numpy.max(n)
+        size = size or p.shape[:-1]
+        
+        indices = _categorical(rng, p, (n_max,) + size)
+        indices_2d = (jax.numpy.reshape(indices, (n_max, -1,))).T
+        samples_2d = jax.vmap(_scatter_add_one, (0, 0, 0))(
+            jax.numpy.zeros((indices_2d.shape[0], p.shape[-1]),
+            dtype=indices.dtype),
+            jax.numpy.expand_dims(indices_2d, axis=-1),
+            jax.numpy.ones(indices_2d.shape, dtype=indices.dtype))
+        
+        sample = jax.numpy.reshape(samples_2d, size + p.shape[-1:])
+        rng["jax_state"] = jax.random.split(rng_key, num=1)[0]
+        return (rng, sample)
+
+    return sample_fn
