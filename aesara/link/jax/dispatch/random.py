@@ -331,30 +331,46 @@ def jax_sample_fn_lognormal(op):
 def jax_sample_fn_multinomial(op):
     """JAX implementation of `MultinomialRV`."""
 
+    def _scatter_add_one(operand, indices, updates):
+        outcome_cnts = jax.lax.scatter_add(
+            operand, indices, updates, 
+            jax.lax.ScatterDimensionNumbers(
+                update_window_dims=(),
+                inserted_window_dims=(0,),
+                scatter_dims_to_operand_dims=(0,)
+                )
+            )
+
+        return outcome_cnts
+
     def _categorical(key, p, shape):
         shape = shape or p.shape[:-1]
         s = jax.numpy.cumsum(p, axis=-1)
         r = jax.random.uniform(key, shape=shape + (1,))
+        
         return jax.numpy.sum(s < r, axis=-1)
 
     def sample_fn(rng, size, dtype, *parameters):
-        """add sampling functionality"""
 
         rng_key = rng["jax_state"]
         n, p = parameters
         n_max = jax.numpy.max(n)
         size = size or p.shape[:-1]
         
-        indices = _categorical(rng, p, (n_max,) + size)
-        indices_2d = (jax.numpy.reshape(indices, (n_max, -1,))).T
+        outcomes = _categorical(rng, p, (n_max,) + size)
+        outcomes_2d = (jax.numpy.reshape(outcomes, (n_max, -1,))).T
         samples_2d = jax.vmap(_scatter_add_one, (0, 0, 0))(
-            jax.numpy.zeros((indices_2d.shape[0], p.shape[-1]),
-            dtype=indices.dtype),
-            jax.numpy.expand_dims(indices_2d, axis=-1),
-            jax.numpy.ones(indices_2d.shape, dtype=indices.dtype))
+            jax.numpy.zeros((outcomes_2d.shape[0], p.shape[-1]), dtype=outcomes.dtype),
+            jax.numpy.expand_dims(outcomes_2d, axis=-1),
+            jax.numpy.ones(outcomes_2d.shape, dtype=outcomes.dtype)
+            )
         
         sample = jax.numpy.reshape(samples_2d, size + p.shape[-1:])
         rng["jax_state"] = jax.random.split(rng_key, num=1)[0]
         return (rng, sample)
 
+<<<<<<< HEAD
     return sample_fn
+=======
+    return sample_fn
+>>>>>>> bf5e7bb54 (jax.lax.scatter_add to count outcome occurences)
