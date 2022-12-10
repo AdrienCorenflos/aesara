@@ -55,3 +55,4 @@ aesara-venv/
 testing-report.html
 coverage.xml
 .coverage.*
+jax_multinomial_test.py
