@@ -367,6 +367,7 @@ def jax_sample_fn_multinomial(op):
         
         sample = jax.numpy.reshape(samples_2d, size + p.shape[-1:])
         rng["jax_state"] = jax.random.split(rng_key, num=1)[0]
+        
         return (rng, sample)
 
 <<<<<<< HEAD
