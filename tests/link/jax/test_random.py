@@ -296,6 +296,22 @@ def test_random_updates(rng_ctor):
             "halfnorm",
             lambda *args: args,
         ),
+        (
+            aer.multinomial,
+            [
+                set_test_value(
+                    at.dvector(),
+                    np.array([1/6]*6, dtype=np.float64),
+                ),
+                set_test_value(
+                    at.dscalar(),
+                    np.array(20, dtype=np.int64)
+                ),
+            ],
+            (2,),
+            "multinomial",
+            lambda *args: args
+        )
     ],
 )
 def test_random_RandomVariable(rv_op, dist_params, base_size, cdf_name, params_conv):
