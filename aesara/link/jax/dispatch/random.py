@@ -327,6 +327,7 @@ def jax_sample_fn_lognormal(op):
 
     return sample_fn
 
+
 @jax_sample_fn.register(aer.MultinomialRV)
 def jax_sample_fn_multinomial(op):
     """JAX implementation of `MultinomialRV`."""
@@ -335,26 +336,24 @@ def jax_sample_fn_multinomial(op):
         shape = shape or p.shape[:-1]
         s = jax.numpy.cumsum(p, axis=-1)
         r = jax.random.uniform(key, shape=shape + (1,))
-        
+
         return jax.numpy.sum(s < r, axis=-1)
 
     def sample_fn(rng, size, dtype, *parameters):
 
         rng_key = rng["jax_state"]
+        rng_key, sampling_key = jax.random.split(rng_key, 2)
+
         n, p = parameters
         n_max = jax.numpy.max(n)
         size = size or p.shape[:-1]
-        
-        outcomes = _categorical(rng, p, (n_max,) + size)
+
+        outcomes = _categorical(sampling_key, p, (n_max,) + size)
         one_hot = jax.nn.one_hot(outcomes, num_classes=p.shape[0])
         sample = jax.numpy.sum(one_hot, axis=0, dtype=dtype)
-        
-        rng["jax_state"] = jax.random.split(rng_key, num=1)[0]
-        
+
+        rng["jax_state"] = rng_key
+
         return (rng, sample)
 
-<<<<<<< HEAD
     return sample_fn
-=======
-    return sample_fn
->>>>>>> bf5e7bb54 (jax.lax.scatter_add to count outcome occurences)
