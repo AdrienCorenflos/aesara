@@ -282,6 +282,26 @@ def jax_sample_fn_halfnormal(op):
     return sample_fn
 
 
+@jax_sample_fn.register(aer.HalfCauchyRV)
+def jax_sample_fn_halfcauchy(op):
+    """JAX implementation of `HalfCauchyRV`."""
+
+    def sample_fn(rng, size, dtype, *parameters):
+        rng_key = rng["jax_state"]
+        rng_key, sampling_key = jax.random.split(rng_key, 2)
+        (
+            loc,
+            scale,
+        ) = parameters
+        sample = loc + jax.numpy.abs(
+            jax.random.cauchy(sampling_key, size, dtype) * scale
+        )
+        rng["jax_state"] = rng_key
+        return (rng, sample)
+
+    return sample_fn
+
+
 @jax_sample_fn.register(aer.ChoiceRV)
 def jax_funcify_choice(op):
     """JAX implementation of `ChoiceRV`."""
@@ -332,13 +352,6 @@ def jax_sample_fn_lognormal(op):
 def jax_sample_fn_multinomial(op):
     """JAX implementation of `MultinomialRV`."""
 
-    def _categorical(key, p, shape):
-        shape = shape or p.shape[:-1]
-        s = jax.numpy.cumsum(p, axis=-1)
-        r = jax.random.uniform(key, shape=shape + (1,))
-
-        return jax.numpy.sum(s < r, axis=-1)
-
     def sample_fn(rng, size, dtype, *parameters):
 
         rng_key = rng["jax_state"]
@@ -348,12 +361,12 @@ def jax_sample_fn_multinomial(op):
         n_max = jax.numpy.max(n)
         size = size or p.shape[:-1]
 
-        outcomes = _categorical(sampling_key, p, (n_max,) + size)
+        logits = jax.scipy.special.logit(p)
+        outcomes = jax.random.categorical(rng_key, logits, shape=(n_max,) + size)
         one_hot = jax.nn.one_hot(outcomes, num_classes=p.shape[0])
         sample = jax.numpy.sum(one_hot, axis=0, dtype=dtype)
 
         rng["jax_state"] = rng_key
-
         return (rng, sample)
 
     return sample_fn
