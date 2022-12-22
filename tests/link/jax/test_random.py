@@ -166,6 +166,22 @@ def test_random_updates(rng_ctor):
             lambda *args: args,
         ),
         (
+            aer.lognormal,
+            [
+                set_test_value(
+                    at.lvector(),
+                    np.array([0, 0], dtype=np.int64),
+                ),
+                set_test_value(
+                    at.dscalar(),
+                    np.array(1.0, dtype=np.float64),
+                ),
+            ],
+            (2,),
+            "lognorm",
+            lambda *args: args,
+        ),
+        (
             aer.normal,
             [
                 set_test_value(
@@ -198,7 +214,7 @@ def test_random_updates(rng_ctor):
             [
                 set_test_value(
                     at.dvector(),
-                    np.array([1000.0, 2000.0], dtype=np.float64),
+                    np.array([100000.0, 200000.0], dtype=np.float64),
                 ),
             ],
             (2,),
@@ -262,6 +278,50 @@ def test_random_updates(rng_ctor):
             ],
             (2,),
             "uniform",
+            lambda *args: args,
+        ),
+        (
+            aer.halfnormal,
+            [
+                set_test_value(
+                    at.dvector(),
+                    np.array([-1.0, 2.0], dtype=np.float64),
+                ),
+                set_test_value(
+                    at.dscalar(),
+                    np.array(1000.0, dtype=np.float64),
+                ),
+            ],
+            (2,),
+            "halfnorm",
+            lambda *args: args,
+        ),
+        (
+            aer.multinomial,
+            [
+                set_test_value(
+                    at.dvector(),
+                    np.array([1 / 6] * 6, dtype=np.float64),
+                ),
+                set_test_value(at.dscalar(), np.array(20, dtype=np.int64)),
+            ],
+            (2,),
+            "multinomial",
+            lambda *args: args,
+        ),
+            aer.halfcauchy,
+            [
+                set_test_value(
+                    at.dvector(),
+                    np.array([-1.0, 2.0], dtype=np.float64),
+                ),
+                set_test_value(
+                    at.dscalar(),
+                    np.array(1000.0, dtype=np.float64),
+                ),
+            ],
+            (2,),
+            "halfcauchy",
             lambda *args: args,
         ),
     ],

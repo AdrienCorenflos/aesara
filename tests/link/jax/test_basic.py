@@ -27,9 +27,12 @@ def set_aesara_flags():
 jax = pytest.importorskip("jax")
 
 
-opts = RewriteDatabaseQuery(include=["jax"], exclude=["cxx_only", "BlasOpt"])
-jax_mode = Mode(JAXLinker(), opts)
-py_mode = Mode("py", opts)
+jax_mode = Mode(
+    JAXLinker(), RewriteDatabaseQuery(include=["jax"], exclude=["cxx_only", "BlasOpt"])
+)
+py_mode = Mode(
+    "py", RewriteDatabaseQuery(include=[None], exclude=["cxx_only", "BlasOpt"])
+)
 
 
 def compare_jax_and_py(
@@ -71,11 +74,9 @@ def compare_jax_and_py(
 
     if must_be_device_array:
         if isinstance(jax_res, list):
-            assert all(
-                isinstance(res, jax.interpreters.xla.DeviceArray) for res in jax_res
-            )
+            assert all(isinstance(res, jax.Array) for res in jax_res)
         else:
-            assert isinstance(jax_res, jax.interpreters.xla.DeviceArray)
+            assert isinstance(jax_res, jax.Array)
 
     aesara_py_fn = function(fn_inputs, fgraph.outputs, mode=py_mode)
     py_res = aesara_py_fn(*test_inputs)
@@ -146,13 +147,13 @@ def test_shared():
     aesara_jax_fn = function([], a, mode="JAX")
     jax_res = aesara_jax_fn()
 
-    assert isinstance(jax_res, jax.interpreters.xla.DeviceArray)
+    assert isinstance(jax_res, jax.Array)
     np.testing.assert_allclose(jax_res, a.get_value())
 
     aesara_jax_fn = function([], a * 2, mode="JAX")
     jax_res = aesara_jax_fn()
 
-    assert isinstance(jax_res, jax.interpreters.xla.DeviceArray)
+    assert isinstance(jax_res, jax.Array)
     np.testing.assert_allclose(jax_res, a.get_value() * 2)
 
     # Changed the shared value and make sure that the JAX-compiled
@@ -161,7 +162,7 @@ def test_shared():
     a.set_value(new_a_value)
 
     jax_res = aesara_jax_fn()
-    assert isinstance(jax_res, jax.interpreters.xla.DeviceArray)
+    assert isinstance(jax_res, jax.Array)
     np.testing.assert_allclose(jax_res, new_a_value * 2)
 
 
