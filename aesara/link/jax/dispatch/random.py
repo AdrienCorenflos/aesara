@@ -362,9 +362,9 @@ def jax_sample_fn_multinomial(op):
         size = size or p.shape[:-1]
 
         logits = jax.scipy.special.logit(p)
-        outcomes = jax.random.categorical(rng_key, logits, shape=(n_max,) + size)
+        outcomes = jax.random.choice(rng_key, a=p.shape[0], p=p, 
+                                     shape=(n_max,) + size)
         one_hot = jax.nn.one_hot(outcomes, num_classes=p.shape[0])
-        sample = jax.numpy.sum(one_hot, axis=0, dtype=dtype)
 
         rng["jax_state"] = rng_key
         return (rng, sample)
